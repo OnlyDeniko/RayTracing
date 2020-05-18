@@ -85,7 +85,7 @@ bool Intersect ( Ray ray, float start, float final, inout Intersection intersect
     float time = start;
     intersect.time = final;
 
-    for(int i=0; i< 3;i++){
+    for(int i=0; i< 4;i++){
         if( IntersectSphere(sphere_data[i], ray, time) && time < intersect.time ) {
             intersect.time = time;
             intersect.point = ray.origin + ray.direction * time;

@@ -23,19 +23,22 @@ void ShaderWidget::initializeGL(){
     if (!prog.bind()){
         qWarning("Error bind programm");
     }
-    prog.setUniformValue("camera.position", QVector3D(0, 0, -10));
+    /*
+    prog.setUniformValue("camera.position", QVector3D(camera.pos.x(), camera.pos.y(), camera.pos.z()));
     prog.setUniformValue("camera.view", QVector3D(0, 0, 1));
     prog.setUniformValue("camera.up", QVector3D(0, 1, 0));
     prog.setUniformValue("camera.side", QVector3D(1, 0, 0));
-
-    //prog.setUniformValue("scale", QVector2D(width(), height()));
-    //prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));
+    prog.setUniformValue("scale", QVector2D(width(), height()));
+    prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));
+    prog.setUniformValue("scale", QVector2D(width(), height()));
+    prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));*/
     prog.release();
 
     std::vector<Sphere> all_spheres;
-    all_spheres.push_back(Sphere{ QVector3D(-1, 0, -2), 3, QVector3D(1.0, 1.0, 0), 0});
-    all_spheres.push_back(Sphere{ QVector3D(3, 0, -3), 2, QVector3D(0.52, 0, 0.52), 0});
-    all_spheres.push_back(Sphere{ QVector3D(-3, -2, -4), 1, QVector3D(1, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-1, 0, 0), 3, QVector3D(1.0, 1.0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(3, 0, 0), 2, QVector3D(0.52, 0, 0.52), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-3, 0, 0), 1.5, QVector3D(1, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-4, -1, 0), 1, QVector3D(0, 0, 1), 0});
 
     functions = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
     functions->glGenBuffers(1, &ssbo);
@@ -59,10 +62,17 @@ void ShaderWidget::paintGL(){
     glDrawArrays(GL_QUADS, 0, 4);
 
     prog.disableAttributeArray(pos);
+    prog.setUniformValue("camera.position", QVector3D(camera.pos.x(), camera.pos.y(), camera.pos.z()));
+    prog.setUniformValue("camera.view", QVector3D(camera.view.x(), camera.view.y(), camera.view.z()));
+    prog.setUniformValue("camera.up", QVector3D(camera.up.x(), camera.up.y(), camera.up.z()));
+    prog.setUniformValue("camera.side", QVector3D(camera.side.x(), camera.side.y(), camera.side.z()));
     prog.setUniformValue("scale", QVector2D(width(), height()));
     prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));
     prog.release();
-    qDebug() << "Paint GL " << lightX << ' ' << lightY << ' ' << lightZ;
+    qDebug() << "Paint GL " << camera.pos.x() << ' ' << camera.pos.y() << ' ' << camera.pos.z();
+    qDebug() << "Paint GL " << camera.view.x() << ' ' << camera.view.y() << ' ' << camera.view.z();
+    qDebug() << "Paint GL " << camera.up.x() << ' ' << camera.up.y() << ' ' << camera.up.z();
+    qDebug() << "Paint GL " << camera.side.x() << ' ' << camera.side.y() << ' ' << camera.side.z();
 }
 
 ShaderWidget::ShaderWidget(QWidget *parent, int x, int y, int z): QOpenGLWidget(parent), pos(0), lightX(x), lightY(y), lightZ(z){
@@ -71,6 +81,19 @@ ShaderWidget::ShaderWidget(QWidget *parent, int x, int y, int z): QOpenGLWidget(
     data[3] = 1.;   data[4] = -1.;  data[5] = 0;
     data[6] = 1.;   data[7] = 1.;   data[8] = 0;
     data[9] = -1.;  data[10] = 1.;  data[11] = 0;
+    ang = PI / 2 * 3;
+    camera.pos.setX(cos(ang) * 10);
+    camera.pos.setY(0);
+    camera.pos.setZ(sin(ang) * 10);
+    camera.view.setX(cos(ang - PI));
+    camera.view.setY(0);
+    camera.view.setZ(sin(ang - PI));
+    camera.up.setX(0);
+    camera.up.setY(1);
+    camera.up.setZ(0);
+    camera.side.setX(cos(ang - 3 * PI / 2));
+    camera.side.setY(0);
+    camera.side.setZ(sin(ang - 3 * PI / 2));
 }
 
 ShaderWidget::~ShaderWidget(){
@@ -78,6 +101,26 @@ ShaderWidget::~ShaderWidget(){
 }
 
 void ShaderWidget::keyPressEvent(QKeyEvent *event){
+    update();
+    qDebug() << event->nativeVirtualKey();
+    if (event->nativeVirtualKey() == 38){
+        ang += 0.01;
+        camera.pos.setX(cos(ang) * 10);
+        camera.pos.setZ(sin(ang) * 10);
+        camera.view.setX(cos(ang - PI));
+        camera.view.setZ(sin(ang - PI));
+        camera.side.setX(cos(ang - 3 * PI / 2));
+        camera.side.setZ(sin(ang - 3 * PI / 2));
+    }
+    if (event->nativeVirtualKey() == 40){
+        ang -= 0.01;
+        camera.pos.setX(cos(ang) * 10);
+        camera.pos.setZ(sin(ang) * 10);
+        camera.view.setX(cos(ang - PI));
+        camera.view.setZ(sin(ang - PI));
+        camera.side.setX(cos(ang - 3 * PI / 2));
+        camera.side.setZ(sin(ang - 3 * PI / 2));
+    }
     if (event->nativeVirtualKey() == Qt::Key_Q){
         lightX += 3;
         //qDebug() << "LOL";

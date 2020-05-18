@@ -7,6 +7,7 @@
 
 class ShaderWidget : public QOpenGLWidget{
 private:
+    const double PI = acos(-1.);
     QOpenGLShaderProgram prog;
     GLfloat* data;
     int pos;
@@ -19,6 +20,14 @@ private:
         QVector3D color;
         int material_ind;
     };
+    struct Camera{
+        QVector3D pos;
+        QVector3D view;
+        QVector3D up;
+        QVector3D side;
+    };
+    Camera camera;
+    double ang;
 
 protected:
     void initializeGL() override;
