@@ -25,9 +25,16 @@ private:
         QVector3D view;
         QVector3D up;
         QVector3D side;
+        double R;
     };
+    struct Triangle{
+        QVector3D v1, v2, v3;
+        int material_ind;
+    };
+
     Camera camera;
-    double ang;
+    double ang, phi, teta;
+
 
 protected:
     void initializeGL() override;

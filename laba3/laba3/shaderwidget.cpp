@@ -32,19 +32,41 @@ void ShaderWidget::initializeGL(){
     prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));
     prog.setUniformValue("scale", QVector2D(width(), height()));
     prog.setUniformValue("light_pos", QVector3D(lightX, lightY, lightZ));*/
-    prog.release();
+
 
     std::vector<Sphere> all_spheres;
-    all_spheres.push_back(Sphere{ QVector3D(-1, 0, 0), 3, QVector3D(1.0, 1.0, 0), 0});
-    all_spheres.push_back(Sphere{ QVector3D(3, 0, 0), 2, QVector3D(0.52, 0, 0.52), 0});
-    all_spheres.push_back(Sphere{ QVector3D(-3, 0, 0), 1.5, QVector3D(1, 0, 0), 0});
-    all_spheres.push_back(Sphere{ QVector3D(-4, -1, 0), 1, QVector3D(0, 0, 1), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-10, 0, 0), 2, QVector3D(1.0, 1.0, 0), 0});
+
+    all_spheres.push_back(Sphere{ QVector3D(10, 0, 0), 2, QVector3D(0.52, 0, 0.52), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, 10, 0), 2, QVector3D(1, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, -10, 0), 2, QVector3D(0, 0, 1), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, 0, 10), 2, QVector3D(0, 1, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, 0, -10), 2, QVector3D(0, 0.5, 1), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, 0, 0), 9, QVector3D(1, 1, 1), 0});
+
+    all_spheres.push_back(Sphere{ QVector3D(sqrt(2) / 2 * 9, 0, -sqrt(2) / 2 * 9), 2, QVector3D(0, 0.25, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-sqrt(2) / 2 * 9, 0, -sqrt(2) / 2 * 9), 2, QVector3D(0, 0.5, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-sqrt(2) / 2 * 9, 0, sqrt(2) / 2 * 9), 2, QVector3D(0, 0.75, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(sqrt(2) / 2 * 9, 0, sqrt(2) / 2 * 9), 2, QVector3D(0, 1.0, 0), 0});
+
+    all_spheres.push_back(Sphere{ QVector3D(sqrt(2) / 2 * 9, -sqrt(2) / 2 * 9, 0), 2, QVector3D(0.25, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-sqrt(2) / 2 * 9, -sqrt(2) / 2 * 9, 0), 2, QVector3D(0.5, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(-sqrt(2) / 2 * 9, sqrt(2) / 2 * 9, 0), 2, QVector3D(0.75, 0, 0), 0});
+    all_spheres.push_back(Sphere{ QVector3D(sqrt(2) / 2 * 9, sqrt(2) / 2 * 9, 0), 2, QVector3D(1.0, 0, 0), 0});
+
+    all_spheres.push_back(Sphere{ QVector3D(0, sqrt(2) / 2 * 9, -sqrt(2) / 2 * 9), 2, QVector3D(0, 0, 0.25), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, -sqrt(2) / 2 * 9, -sqrt(2) / 2 * 9), 2, QVector3D(0, 0, 0.5), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, -sqrt(2) / 2 * 9, sqrt(2) / 2 * 9), 2, QVector3D(0, 0, 0.75), 0});
+    all_spheres.push_back(Sphere{ QVector3D(0, sqrt(2) / 2 * 9, sqrt(2) / 2 * 9), 2, QVector3D(0, 0, 1.0), 0});
+
+    prog.setUniformValue("vector_size", (int)all_spheres.size());
 
     functions = QOpenGLContext::currentContext()->versionFunctions<QOpenGLFunctions_4_3_Core>();
     functions->glGenBuffers(1, &ssbo);
     functions->glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo);
     functions->glBufferData(GL_SHADER_STORAGE_BUFFER, all_spheres.size() * sizeof(Sphere), all_spheres.data(), GL_DYNAMIC_COPY);
     functions->glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+    prog.release();
 }
 
 void ShaderWidget::resizeGL(int nwidth, int nheight){
@@ -82,9 +104,10 @@ ShaderWidget::ShaderWidget(QWidget *parent, int x, int y, int z): QOpenGLWidget(
     data[6] = 1.;   data[7] = 1.;   data[8] = 0;
     data[9] = -1.;  data[10] = 1.;  data[11] = 0;
     ang = PI / 2 * 3;
-    camera.pos.setX(cos(ang) * 10);
+    camera.R = 40;
+    camera.pos.setX(cos(ang) * camera.R);
     camera.pos.setY(0);
-    camera.pos.setZ(sin(ang) * 10);
+    camera.pos.setZ(sin(ang) * camera.R);
     camera.view.setX(cos(ang - PI));
     camera.view.setY(0);
     camera.view.setZ(sin(ang - PI));
@@ -105,8 +128,8 @@ void ShaderWidget::keyPressEvent(QKeyEvent *event){
     qDebug() << event->nativeVirtualKey();
     if (event->nativeVirtualKey() == 38){
         ang += 0.01;
-        camera.pos.setX(cos(ang) * 10);
-        camera.pos.setZ(sin(ang) * 10);
+        camera.pos.setX(cos(ang) * camera.R);
+        camera.pos.setZ(sin(ang) * camera.R);
         camera.view.setX(cos(ang - PI));
         camera.view.setZ(sin(ang - PI));
         camera.side.setX(cos(ang - 3 * PI / 2));
@@ -114,8 +137,8 @@ void ShaderWidget::keyPressEvent(QKeyEvent *event){
     }
     if (event->nativeVirtualKey() == 40){
         ang -= 0.01;
-        camera.pos.setX(cos(ang) * 10);
-        camera.pos.setZ(sin(ang) * 10);
+        camera.pos.setX(cos(ang) * camera.R);
+        camera.pos.setZ(sin(ang) * camera.R);
         camera.view.setX(cos(ang - PI));
         camera.view.setZ(sin(ang - PI));
         camera.side.setX(cos(ang - 3 * PI / 2));

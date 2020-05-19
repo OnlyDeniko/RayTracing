@@ -35,18 +35,30 @@ struct Intersection{
     int material_ind;
 };
 
+struct Triangle{
+    vec3 v1;
+    vec3 v2;
+    vec3 v3;
+    int material_ind;
+    vec3 color;
+};
+
+
 in vec3 interpolated_vertex;
 out vec4 FragColor;
 
 uniform Camera camera;
 uniform vec2 scale;
 uniform vec3 light_pos;
+uniform int vector_size;
 
 layout(std430, binding = 0) buffer SphereBuffer{
     Sphere sphere_data[];
 };
 
 Material material = Material(vec4(0.4, 0.9, 0.0, 512.0));
+
+Triangle tri[4];
 //vec3 light_pos = vec3(10, -5, -5);
 
 Ray GenerateRay(Camera camera){
@@ -80,12 +92,40 @@ bool IntersectSphere(Sphere sphere, Ray ray, out float time){
     return false;
 }
 
+bool IntersectTriangle (Ray ray, vec3 v1, vec3 v2, vec3 v3, out float time ){
+    time = -1;
+    vec3 A = v2 - v1;
+    vec3 B = v3 - v1;
+    vec3 N = cross(A, B);
+    float NdotRayDirection = dot(N, ray.direction);
+    if (abs(NdotRayDirection) < 0.001)   return false;
+    float d = dot(N, v1);
+    float t = -1. * (dot(N, ray.origin) - d) / NdotRayDirection;
+    if (t < 0) return false;
+    vec3 P = ray.origin + t * ray.direction;
+
+    vec3 edge1 = v2 - v1;
+    vec3 VP1 = P - v1;
+    vec3 C = cross(edge1, VP1);
+    if (dot(N, C) < 0)  return false;
+    vec3 edge2 = v3 - v2;
+    vec3 VP2 = P - v2;
+    C = cross(edge2, VP2);
+    if (dot(N, C) < 0)   return false;
+    vec3 edge3 = v1 - v3;
+    vec3 VP3 = P - v3;
+    C = cross(edge3, VP3);
+    if (dot(N, C) < 0)   return false;
+    time = t;
+    return true;
+}
+
 bool Intersect ( Ray ray, float start, float final, inout Intersection intersect ) {
     bool result = false;
     float time = start;
     intersect.time = final;
 
-    for(int i=0; i< 4;i++){
+    for(int i = 0;i < vector_size;i++){
         if( IntersectSphere(sphere_data[i], ray, time) && time < intersect.time ) {
             intersect.time = time;
             intersect.point = ray.origin + ray.direction * time;
@@ -96,6 +136,17 @@ bool Intersect ( Ray ray, float start, float final, inout Intersection intersect
 
             result = true;
         }
+    }
+    for(int i = 0;i < 4;i++){
+        if(IntersectTriangle(ray, tri[i].v1, tri[i].v2, tri[i].v3, time) && time < intersect.time){
+		intersect.point = ray.origin + ray.direction * time;
+                intersect.normal = normalize(cross(tri[i].v1 - tri[i].v2, tri[i].v3 - tri[i].v2));
+                intersect.color = tri[i].color;
+                intersect.material_ind = tri[i].material_ind;
+		intersect.light_coeffs = material.light_coeffs;
+		intersect.time = time;
+		result = true;
+	}
     }
     return result;
 }
@@ -144,6 +195,10 @@ vec4 RayTrace(Ray primary_ray){
 
 void main(void){
     //FragColor = vec4(abs(interpolated_vertex.xy), 0, 1.0);
+    tri[0] = Triangle(vec3(-10, -10, -20), vec3(10, -10, -20), vec3(0, 5, -15), 0, vec3(1, 1, 0));
+    tri[1] = Triangle(vec3(-10, -10, -20), vec3(10, -10, -20), vec3(0, -10, 0), 0, vec3(1, 1, 0));
+    tri[2] = Triangle(vec3(0, 5, -15), vec3(10, -10, -20), vec3(0, -10, 0), 0, vec3(1, 1, 0));
+    tri[3] = Triangle(vec3(0, 5, -15), vec3(0, -10, 0), vec3(-10, -10, -20), 0, vec3(1, 1, 0));
     Ray ray = GenerateRay(camera);
     FragColor = RayTrace(ray);
     //FragColor = vec4(abs(ray.direction.xy), 0, 1.0);
