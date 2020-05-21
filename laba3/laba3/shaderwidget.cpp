@@ -104,7 +104,7 @@ ShaderWidget::ShaderWidget(QWidget *parent, int x, int y, int z): QOpenGLWidget(
     data[6] = 1.;   data[7] = 1.;   data[8] = 0;
     data[9] = -1.;  data[10] = 1.;  data[11] = 0;
     ang = PI / 2 * 3;
-    camera.R = 40;
+    camera.R = 50;
     camera.pos.setX(cos(ang) * camera.R);
     camera.pos.setY(0);
     camera.pos.setZ(sin(ang) * camera.R);

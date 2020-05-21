@@ -43,6 +43,26 @@ struct Triangle{
     vec3 color;
 };
 
+struct Square{
+    vec3 v1;
+    vec3 v2;
+    vec3 v3;
+    vec3 v4;
+    int material_ind;
+    vec3 color;
+};
+
+struct Pyramid{
+    Triangle coords[4];
+    /*
+    Pyramid(vec3 a, vec3 b, vec3 c, vec3 d, vec3 color){
+        coords[0] = Triangle(a, b, c, 0, color);
+        coords[1] = Triangle(a, b, d, 0, color);
+        coords[2] = Triangle(c, b, d, 0, color);
+        coords[3] = Triangle(c, d, a, 0, color);
+    }
+    */
+};
 
 in vec3 interpolated_vertex;
 out vec4 FragColor;
@@ -58,7 +78,10 @@ layout(std430, binding = 0) buffer SphereBuffer{
 
 Material material = Material(vec4(0.4, 0.9, 0.0, 512.0));
 
+Pyramid pir;
 Triangle tri[4];
+Square sq[6];
+
 //vec3 light_pos = vec3(10, -5, -5);
 
 Ray GenerateRay(Camera camera){
@@ -120,6 +143,38 @@ bool IntersectTriangle (Ray ray, vec3 v1, vec3 v2, vec3 v3, out float time ){
     return true;
 }
 
+bool IntersectSquare(Ray ray, vec3 v1, vec3 v2, vec3 v3, vec3 v4, out float time ){
+    time = -1;
+    vec3 A = v2 - v1;
+    vec3 B = v4 - v1;
+    vec3 N = cross(A, B);
+    float NdotRayDirection = dot(N, ray.direction);
+    if (abs(NdotRayDirection) < 0.001)   return false;
+    float d = dot(N, v1);
+    float t = -1. * (dot(N, ray.origin) - d) / NdotRayDirection;
+    if (t < 0) return false;
+    vec3 P = ray.origin + t * ray.direction;
+
+    vec3 edge1 = v2 - v1;
+    vec3 VP1 = P - v1;
+    vec3 C = cross(edge1, VP1);
+    if (dot(N, C) < 0)  return false;
+    vec3 edge2 = v3 - v2;
+    vec3 VP2 = P - v2;
+    C = cross(edge2, VP2);
+    if (dot(N, C) < 0)   return false;
+    vec3 edge3 = v4 - v3;
+    vec3 VP3 = P - v3;
+    C = cross(edge3, VP3);
+    if (dot(N, C) < 0)   return false;
+    vec3 edge4 = v1 - v4;
+    vec3 VP4 = P - v4;
+    C = cross(edge4, VP4);
+    if (dot(N, C) < 0)   return false;
+    time = t;
+    return true;
+}
+
 bool Intersect ( Ray ray, float start, float final, inout Intersection intersect ) {
     bool result = false;
     float time = start;
@@ -147,6 +202,17 @@ bool Intersect ( Ray ray, float start, float final, inout Intersection intersect
 		intersect.time = time;
 		result = true;
 	}
+    }
+    for(int i = 0;i < 6;i++){
+        if(IntersectSquare(ray, sq[i].v1, sq[i].v2, sq[i].v3, sq[i].v4, time) && time < intersect.time){
+                intersect.point = ray.origin + ray.direction * time;
+                intersect.normal = normalize(cross(sq[i].v1 - sq[i].v2, sq[i].v3 - sq[i].v2));
+                intersect.color = sq[i].color;
+                intersect.material_ind = sq[i].material_ind;
+                intersect.light_coeffs = material.light_coeffs;
+                intersect.time = time;
+                result = true;
+        }
     }
     return result;
 }
@@ -195,10 +261,20 @@ vec4 RayTrace(Ray primary_ray){
 
 void main(void){
     //FragColor = vec4(abs(interpolated_vertex.xy), 0, 1.0);
-    tri[0] = Triangle(vec3(-10, -10, -20), vec3(10, -10, -20), vec3(0, 5, -15), 0, vec3(1, 1, 0));
-    tri[1] = Triangle(vec3(-10, -10, -20), vec3(10, -10, -20), vec3(0, -10, 0), 0, vec3(1, 1, 0));
-    tri[2] = Triangle(vec3(0, 5, -15), vec3(10, -10, -20), vec3(0, -10, 0), 0, vec3(1, 1, 0));
-    tri[3] = Triangle(vec3(0, 5, -15), vec3(0, -10, 0), vec3(-10, -10, -20), 0, vec3(1, 1, 0));
+
+    tri[0] = Triangle(vec3(-10, -10, -30), vec3(10, -10, -30), vec3(0, 5, -25), 0, vec3(1, 1, 0));
+    tri[1] = Triangle(vec3(-10, -10, -30), vec3(10, -10, -30), vec3(0, -10, -10), 0, vec3(1, 1, 0));
+    tri[2] = Triangle(vec3(0, 5, -25), vec3(10, -10, -30), vec3(0, -10, -10), 0, vec3(1, 1, 0));
+    tri[3] = Triangle(vec3(0, 5, -25), vec3(0, -10, -10), vec3(-10, -10, -30), 0, vec3(1, 1, 0));
+
+    sq[0] = Square(vec3(10, 0, 0), vec3(20, 0, 0), vec3(20, 10, 0), vec3(10, 10, 0), 0, vec3(0.52, 0, 0.52));
+    sq[1] = Square(vec3(20, 0, 0), vec3(20, 0, 10), vec3(20, 10, 10), vec3(20, 10, 0), 0, vec3(0.52, 0, 0.52));
+    sq[2] = Square(vec3(20, 0, 10), vec3(10, 0, 10), vec3(10, 10, 10), vec3(20, 10, 10), 0, vec3(0.52, 0, 0.52));
+    sq[3] = Square(vec3(10, 0, 10), vec3(10, 0, 0), vec3(10, 10, 0), vec3(10, 10, 10), 0, vec3(0.52, 0, 0.52));
+    sq[4] = Square(vec3(10, 0, 0), vec3(20, 0, 0), vec3(20, 0, 10), vec3(10, 0, 10), 0, vec3(0.52, 0, 0.52));
+    sq[5] = Square(vec3(10, 10, 0), vec3(20, 10, 0), vec3(20, 10, 10), vec3(10, 10, 10), 0, vec3(0.52, 0, 0.52));
+
+
     Ray ray = GenerateRay(camera);
     FragColor = RayTrace(ray);
     //FragColor = vec4(abs(ray.direction.xy), 0, 1.0);
